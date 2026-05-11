@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GistPDF / Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body style="background-color: #0B0A0B;">
+    <div class="d-flex flex-column justify-content-center align-items-center my-5">
+        <br>
+        <div class="card rounded-3 text-center px-4 py-3 border" style="min-width: 45%;">
+            <br>
+            <div class="text-center d-flex justify-content-center align-items-start">
+                <h2 style="font-family: serif;">GistPDF</h2>
+            </div>
+            <br>
+            
+            <div>
+                <small>Welcome back!</small>
+                <h5>Login to your account</h5>
+            </div>
+            <br>
+
+            <small class="text-muted" id="loginError"></small>
+            <div class="form-section">
+                <form method="POST" id="loginForm">
+                    {% csrf_token %}
+                    <div class="input-group w-100 mb-3">
+                        <input type="email" name="email" class="form-control" placeholder="Enter Email Address" required>
+                    </div>
+                    <div class="input-group mb-3">
+                        <input type="password" name="password" class="form-control" placeholder="Enter Password" required>
+                        <span class="input-group-text" id="togglePassword" style="cursor: pointer;">
+                            <i class="bi bi-eye-slash" id="eyeIcon"></i>
+                        </span>
+                    </div>
+                    <div>
+                        <a class="btn btn-dark w-100 mb-2" onclick="login()">Sign In</a>
+                        <a class="btn btn-outline-dark w-100">Login using OTP</a>
+                    </div>
+                </form>
+                <br>
+                <div class="text-center">
+                    <p>Don't have an account?</p>
+                    <a href="{% url 'signup' %}" class="btn btn-dark w-100 mb-2">Sign Up</a>    
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- login -->
+    <script>
+        function login() {
+            var data = {
+                'email': document.querySelector('input[name="email"]').value,
+                'password': document.querySelector('input[name="password"]').value
+            }
+
+            if (data['email'] == '' || data['password'] == '') {
+                document.getElementById('loginError').innerHTML = 'Please fill in all fields';
+            }else{
+                document.getElementById('loginError').innerHTML = '';
+
+                fetch('', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}',
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data['status'] == 'success') {
+                        window.location.href = '/';
+                    }else{
+                        document.getElementById('loginError').innerHTML = data['error'];
+                    }
+                })
+            }
+        }
+    </script>
+
+    <!-- JavaScript for toggling password visibility -->
+    <script>
+        const togglePassword = document.querySelector('#togglePassword');
+        const password = document.querySelector('input[name="password"]');
+        const eyeIcon = document.querySelector('#eyeIcon');
+
+        togglePassword.addEventListener('click', function () {
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+
+            if (type === 'password') {
+                eyeIcon.classList.remove('bi-eye');
+                eyeIcon.classList.add('bi-eye-slash');
+            } else {
+                eyeIcon.classList.remove('bi-eye-slash');
+                eyeIcon.classList.add('bi-eye');
+            }
+        });
+    </script>
+</body>
+</html>

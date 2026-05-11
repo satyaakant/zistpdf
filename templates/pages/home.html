@@ -1,0 +1,371 @@
+<head>
+    <title>GistPDF</title>
+</head>
+
+{% extends 'base.html' %}
+
+{% block additional_css %}
+<style>
+    .nav-link{
+        color: var(--2);
+    }
+    .nav-link:hover{
+        color: var(--3);
+    }
+    .nav-link.active{
+        background-color: var(--3) !important;
+    }
+    .left-div{
+        height: 100%;
+    }
+    
+    @media screen and (max-width: 992px) {
+        .left-div{            
+            height: auto !important;
+        }
+    }
+</style>
+
+<style>
+    .user-message {
+        text-align: right;
+        padding: 8px 12px;
+        background-color: #747993;
+        color: var(--2);
+        border-radius: 12px;
+        max-width: 70%;
+        margin-left: auto;
+    }
+
+    .bot-reply {
+        text-align: left;
+        padding: 8px 12px;
+        background-color: var(--2);
+        color: var(--3);
+        border-radius: 12px;
+        max-width: 70%;
+        margin-right: auto;
+    }
+
+    #chat-messages {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-height: 98%;
+        overflow-y: scroll;
+    }
+    #chat-messages::-webkit-scrollbar {
+        display: none;
+    }
+
+    #summary{
+        text-align: justify;
+        max-height: 98%;
+        overflow-y: scroll;
+    }
+    #summary::-webkit-scrollbar {
+        display: none
+    }
+
+    #qa{
+        text-align: justify;
+        max-height: 98%;
+        overflow-y: scroll;
+    }
+    #qa::-webkit-scrollbar {
+        display: none
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-2" style="height: 100vh;">
+    <div class="row mx-0 h-100">
+        
+        <div class="col-lg-6 px-2 py-1">
+            <div class="d-flex flex-column left-div">
+                <div class="d-flex align-items-center justify-content-between p-2 rounded border border-secondary text-white" style="background-color: var(--3); height: 10%;">
+                    <span>
+                        {% if userdata.gender == 'M' %}
+                            <img class="rounded-circle border border-secondary p-1" width="40" height="40" src="https://img.icons8.com/glyph-neue/40/ffffff/user--v1.png" alt="user--v1"/> 
+                        {% else %}
+                            <img class="rounded-circle border border-secondary p-1" width="40" height="40" src="https://img.icons8.com/glyph-neue/40/ffffff/person-female--v1.png" alt="person-female--v1"/>
+                        {% endif %}
+                        <span>Welcome @{{ userdata.username }}</span>
+                    </span>
+
+                    {% if usertype == 'loggedin' %}
+                        <span>
+                            <a href="{% url 'logout' %}" class="text-white text-decoration-none">logout</a> 
+                        </span>
+                    {% else %}
+                        <span>
+                            <a href="{% url 'login' %}" class="text-white text-decoration-none">login</a> 
+                        </span>
+                    {% endif %}
+                </div>
+                <br>
+                <div class="d-block d-lg-none border border-secondary text-white rounded p-2">
+                    <input type="file" accept="application/pdf" class="mb-3 w-100 border border-secondary p-2 rounded" onchange="previewPDF(event)">
+                </div>
+                <div class="d-none d-lg-block border border-secondary text-white rounded p-2" style="height: 90%; overflow-y: hidden;">
+                    <input type="file" accept="application/pdf" class="mb-3 w-100 border border-secondary p-2 rounded" onchange="previewPDF(event)">
+                    <div id="pdfPreviewContainer">
+                        <iframe id="pdfPreview" style="width: 100%; height: 90%;" frameborder="0"></iframe>
+                    </div>
+                </div>
+            </div>                      
+        </div>
+
+        <div class="col-lg-6 px-2 py-1">
+            <div class="border border-secondary text-white rounded p-2 h-100">
+                <div class="d-flex flex-column h-100">
+                    <div style="height: 10%;">
+                        <ul class="nav nav-pills nav-justified rounded p-1" id="tabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="chat-tab" data-bs-toggle="pill" data-bs-target="#chat" type="button" role="tab" aria-controls="chat" aria-selected="true">Chat</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="summary-tab" data-bs-toggle="pill" data-bs-target="#summary" type="button" role="tab" aria-controls="summary" aria-selected="false">Summary</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="qa-tab" data-bs-toggle="pill" data-bs-target="#qa" type="button" role="tab" aria-controls="qa" aria-selected="false">Q/A</button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div style="height: 80%;">
+                        <div class="tab-content rounded" id="tabsContent" style="height: 98%; background-color: var(--3); color: var(--2);">
+                            <div class="tab-pane p-2 fade show active" id="chat" role="tabpanel" aria-labelledby="chat-tab">
+                                <div id="chat-messages">
+                                    <!-- Chat messages will appear here -->
+                                </div>
+                            </div>
+                            <div class="tab-pane p-2 fade" id="summary" role="tabpanel" aria-labelledby="summary-tab">
+                                <!-- Summary content -->
+                            </div>
+                            <div class="tab-pane p-2 fade" id="qa" role="tabpanel" aria-labelledby="qa-tab">
+                                <!-- Q/A content -->
+                            </div>
+                        </div>
+                    </div>                                      
+                    <div style="height: 10%;">
+                        <div class="position-relative">
+                            <input type="text" id="user-input" class="w-100 h-100 border border-secondary p-2 rounded" placeholder="Ask a question" style="background-color: transparent; color: var(--2) !important;" onkeypress="checkEnter(event)">   
+                            <button class="btn btn-sm btn-light position-absolute" style="top: 50%; right: 10px; transform: translateY(-50%);" onclick="sendMessage()">
+                                <img width="24" height="24" src="https://img.icons8.com/material-rounded/24/sent.png" alt="sent"/>
+                            </button>
+                        </div>
+                    </div>                    
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_js %}
+<script>
+    function sendMessage() {
+
+        var fileInput1 = document.querySelectorAll('.left-div input[type="file"]')[0];
+        var fileInput2 = document.querySelectorAll('.left-div input[type="file"]')[1];
+        var file = fileInput1.files[0];
+        var file1 = fileInput2.files[0];
+
+        var formData = new FormData();
+
+        if (file && file.type === 'application/pdf' || file1 && file1.type === 'application/pdf') {
+            formData.append('file', file) || formData.append('file', file1);
+
+            var userInput = document.getElementById("user-input").value.trim();
+            var chatMessages = document.getElementById("chat-messages");
+            formData.append('user_input', userInput);
+
+            if (userInput) {
+                var timeSent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                // Display user message (align to the right)
+                var userMessage = document.createElement("div");
+                userMessage.classList.add("user-message");
+                userMessage.innerHTML = `${userInput} <br/> <p class="text-muted my-1" style="font-size: 0.6em;">${timeSent}</p>`;
+                chatMessages.appendChild(userMessage);
+
+                fetch('/rest/chat/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                    },
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        return response.text();
+                    }
+                })
+                .then(data => {
+                    var timeReceive = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    if (data.msg) {
+                        var botReply = document.createElement("div");
+                        botReply.classList.add("bot-reply");
+                        botReply.innerHTML = `${data.msg} <br/> <p class="text-muted my-1" style="font-size: 0.6em;">${timeReceive}</p>`;
+                        chatMessages.appendChild(botReply);
+                    } else {
+                        var botReply = document.createElement("div");
+                        botReply.classList.add("bot-reply");
+                        botReply.textContent = `${data.error}`;
+                        chatMessages.appendChild(botReply);
+                    }
+
+                    var boticon = '<img width="25" height="25" src="https://img.icons8.com/sf-ultralight/ffffff/25/bot.png" alt="bot"/>';
+                    chatMessages.innerHTML = chatMessages.innerHTML + boticon;
+
+                    // Clear the input field
+                    document.getElementById("user-input").value = "";
+
+                    // Scroll to the latest message
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+
+                    const botReply = document.createElement("div");
+                    botReply.classList.add("bot-reply");
+                    botReply.textContent = "Unable to process your request. Please try again.";
+                    chatMessages.appendChild(botReply);
+
+                    var boticon = '<img width="25" height="25" src="https://img.icons8.com/sf-ultralight/ffffff/25/bot.png" alt="bot"/>';
+                    chatMessages.innerHTML = chatMessages.innerHTML + boticon;
+
+                    // Clear the input field
+                    document.getElementById("user-input").value = "";
+
+                    // Scroll to the latest message
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                });
+            }
+        } else {
+            alert("Please upload a valid PDF file first.");
+        }
+    }
+
+
+    function checkEnter(event) {
+        if (event.key === "Enter") {
+            sendMessage();
+        }
+    }
+</script>
+
+<!-- disable input field -->
+<script>
+    function toggleInputField() {
+        const inputField = document.getElementById("user-input");
+        const activeTab = document.querySelector(".tab-pane.active");
+
+        if (activeTab && (activeTab.id === "summary" || activeTab.id === "qa")) {
+            inputField.placeholder = "Disabled. Only Available in 'Chat' Tab";
+            inputField.disabled = true;
+        } else {
+            inputField.placeholder = "Ask a question";
+            inputField.disabled = false;
+        }
+    }
+
+    const tabLinks = document.querySelectorAll('.nav-link');
+    tabLinks.forEach(tabLink => {
+        tabLink.addEventListener('click', () => {
+            setTimeout(toggleInputField, 200);
+        });
+    });
+    window.onload = toggleInputField;
+</script>
+
+<!-- pdf preview and generate summary -->
+<script>
+    function previewPDF(event) {
+        var file = event.target.files[0];
+        if (file && file.type === 'application/pdf') {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var iframe = document.getElementById('pdfPreview');
+                iframe.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        } else {
+            alert('Please upload a valid PDF file.');
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        document.getElementById('summary').textContent = "summarizing...";
+        var summaryTab = document.querySelector('#summary-tab');
+        summaryTab.click();
+
+        fetch('/rest/readpdf/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                document.getElementById('summary').textContent = data.msg;
+            }else{
+                document.getElementById('summary').textContent = data.error;
+            }
+        })
+
+        generateQA(formData);
+    };
+</script>
+
+<!-- Q/A generator -->
+<script>
+    function generateQA(formData) {
+        document.getElementById('qa').textContent = "generating...";
+
+        fetch('/rest/generateqa/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const qaContent = data.msg;
+                const qaArray = qaContent.split('\n');
+
+                document.getElementById('qa').innerHTML = '';
+
+                qaArray.forEach((qa, index) => {
+                    const qaDiv = document.createElement('p');
+                    qaDiv.classList.add('qa');
+                    qaDiv.innerHTML = qa;
+
+                    document.getElementById('qa').appendChild(qaDiv);
+
+                    if (index < qaArray.length - 1) {
+                        const separator = document.createElement('br');
+                        document.getElementById('qa').appendChild(separator);
+                    }
+                });
+            } else {
+                document.getElementById('qa').textContent = data.error;
+            }
+        })
+        .catch(error => {
+            document.getElementById('qa').textContent = 'Error generating Q&A.';
+        });
+    }
+</script>
+
+{% endblock %}
