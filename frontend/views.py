@@ -244,3 +244,39 @@ def generateQA(request): # generateQA
                 return JsonResponse({'error': 'No readable text found in this PDF.', 'code': 400})
         else:
             return JsonResponse({'error': 'No file uploaded.', 'code': 400})
+
+def generateStudyGuide(request):
+    groq_study_prompt = ChatPromptTemplate.from_template(
+        """
+        Act as an expert academic tutor. Analyze the following syllabus/text and create a comprehensive Study Guide.
+        Include:
+        1. **Topic Breakdown**: Organize the content into logical study units.
+        2. **PYQ (Previous Year Questions) Predictions**: Identify highly important topics likely to appear in exams.
+        3. **Last-Minute Revision Guide**: Key formulas, definitions, or concepts to remember.
+        4. **Study Strategy**: Suggest how to allocate time for these topics.
+
+        <context>
+        {context}
+        </context>
+        """
+    )
+    if request.method == 'POST':
+        uploaded_file = request.FILES.get('file')
+
+        if uploaded_file:
+            extracted_text = extract_text_from_pdf(uploaded_file)
+            
+            if extracted_text:
+                word_count = len(extracted_text.split())
+                if word_count > 2500: # Slightly higher limit for study guides
+                    return JsonResponse({'error': 'Text exceeds 2500 words. Please use a shorter document.', 'code': 400})
+                else:
+                    llm = get_llm()
+                    guide = llm.invoke(groq_study_prompt.format(context=extracted_text))
+                    guide_content = guide.content.replace('*', ' ')
+                    
+                    return JsonResponse({'status': 'success', 'msg': guide_content}, status=200)
+            else:
+                return JsonResponse({'error': 'No readable text found in this PDF.', 'code': 400})
+        else:
+            return JsonResponse({'error': 'No file uploaded.', 'code': 400})

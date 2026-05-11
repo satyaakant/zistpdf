@@ -75,6 +75,15 @@
     #qa::-webkit-scrollbar {
         display: none
     }
+
+    #studyguide{
+        text-align: justify;
+        max-height: 98%;
+        overflow-y: scroll;
+    }
+    #studyguide::-webkit-scrollbar {
+        display: none
+    }
 </style>
 {% endblock %}
 
@@ -131,6 +140,9 @@
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="qa-tab" data-bs-toggle="pill" data-bs-target="#qa" type="button" role="tab" aria-controls="qa" aria-selected="false">Q/A</button>
                             </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="study-tab" data-bs-toggle="pill" data-bs-target="#studyguide" type="button" role="tab" aria-controls="studyguide" aria-selected="false">Student Hub</button>
+                            </li>
                         </ul>
                     </div>
                     <div style="height: 80%;">
@@ -145,6 +157,9 @@
                             </div>
                             <div class="tab-pane p-2 fade" id="qa" role="tabpanel" aria-labelledby="qa-tab">
                                 <!-- Q/A content -->
+                            </div>
+                            <div class="tab-pane p-2 fade" id="studyguide" role="tabpanel" aria-labelledby="study-tab">
+                                <!-- Study Guide content -->
                             </div>
                         </div>
                     </div>                                      
@@ -265,8 +280,9 @@
     function toggleInputField() {
         const inputField = document.getElementById("user-input");
         const activeTab = document.querySelector(".tab-pane.active");
+        const studentTabs = ["summary", "qa", "studyguide"];
 
-        if (activeTab && (activeTab.id === "summary" || activeTab.id === "qa")) {
+        if (activeTab && studentTabs.includes(activeTab.id)) {
             inputField.placeholder = "Disabled. Only Available in 'Chat' Tab";
             inputField.disabled = true;
         } else {
@@ -322,6 +338,7 @@
             }
         })
 
+        generateStudyGuide(formData);
         generateQA(formData);
     };
 </script>
@@ -364,6 +381,33 @@
         })
         .catch(error => {
             document.getElementById('qa').textContent = 'Error generating Q&A.';
+        });
+    }
+
+    function generateStudyGuide(formData) {
+        document.getElementById('studyguide').innerHTML = '<div class="text-center p-3"><div class="spinner-border text-light" role="status"></div><p>Crafting your student hub...</p></div>';
+
+        fetch('/rest/studyguide/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Convert markdown-like bold and newlines to HTML
+                let formatted = data.msg
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\n/g, '<br/>');
+                document.getElementById('studyguide').innerHTML = `<div class="p-2">${formatted}</div>`;
+            } else {
+                document.getElementById('studyguide').textContent = data.error;
+            }
+        })
+        .catch(error => {
+            document.getElementById('studyguide').textContent = 'Error generating Study Guide.';
         });
     }
 </script>

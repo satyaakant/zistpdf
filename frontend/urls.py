@@ -11,4 +11,5 @@ urlpatterns = [
     path('rest/readpdf/', views.readpdf, name='readpdf'),
     path('rest/generateqa/', views.generateQA, name='generateqa'),
     path('rest/chat/', views.chat, name='chat'),
+    path('rest/studyguide/', views.generateStudyGuide, name='studyguide'),
 ]
