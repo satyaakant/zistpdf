@@ -140,8 +140,12 @@ def extract_text_from_pdf(pdf_file):
         return f"Error extracting text from PDF: {str(e)}"
 
 # rest api
-groq_api_key = os.environ.get('GROQ_API_KEY')
-llm_groq = ChatGroq(groq_api_key=groq_api_key, model_name="Gemma2-9b-It")
+# Lazy loader for LLM
+def get_llm():
+    groq_api_key = os.environ.get('GROQ_API_KEY')
+    if not groq_api_key:
+        raise ValueError("GROQ_API_KEY environment variable is not set.")
+    return ChatGroq(groq_api_key=groq_api_key, model_name="Gemma2-9b-It")
 
 def chat(request):
     groq_chat_prompt = ChatPromptTemplate.from_template(
@@ -167,7 +171,8 @@ def chat(request):
                 if word_count > 2000:
                     return JsonResponse({'error': 'Text in pdf exceeds the maximum allowed word count of 2000. Please shorten the text and try again.', 'code': 400})
                 else:
-                    bot_reply = llm_groq.invoke(groq_chat_prompt.format(context=extracted_text, message=message))
+                    llm = get_llm()
+                    bot_reply = llm.invoke(groq_chat_prompt.format(context=extracted_text, message=message))
                     bot_reply_content = bot_reply.content.replace('*', ' ')
 
                     return JsonResponse({'status': 'success', 'msg': bot_reply_content}, status=200)
@@ -196,7 +201,8 @@ def readpdf(request): # readpdf and summarize
                 if word_count > 2000:
                     return JsonResponse({'error': 'Text in pdf exceeds the maximum allowed word count of 2000. Please shorten the text and try again.', 'code': 400})
                 else:
-                    summary = llm_groq.invoke(groq_summarize_prompt.format(context=extracted_text))
+                    llm = get_llm()
+                    summary = llm.invoke(groq_summarize_prompt.format(context=extracted_text))
                     summary_content = summary.content.replace('*', ' ')
                     
                     return JsonResponse({'status': 'success', 'msg': summary_content}, status=200)
@@ -229,7 +235,8 @@ def generateQA(request): # generateQA
                 if word_count > 2000:
                     return JsonResponse({'error': 'Text in pdf exceeds the maximum allowed word count of 2000. Please shorten the text and try again.', 'code': 400})
                 else:
-                    qa = llm_groq.invoke(groq_qa_prompt.format(context=extracted_text))
+                    llm = get_llm()
+                    qa = llm.invoke(groq_qa_prompt.format(context=extracted_text))
                     qa_content = qa.content.replace('*', ' ')
                     
                     return JsonResponse({'status': 'success', 'msg': qa_content}, status=200)
