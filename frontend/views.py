@@ -160,26 +160,29 @@ def chat(request):
         """
     )
     if request.method == 'POST':
-        message = request.POST.get('user_input')
-        uploaded_file = request.FILES.get('file')
+        try:
+            message = request.POST.get('user_input')
+            uploaded_file = request.FILES.get('file')
 
-        if uploaded_file:
-            extracted_text = extract_text_from_pdf(uploaded_file)
-            
-            if extracted_text:
-                word_count = len(extracted_text.split())
-                if word_count > 2000:
-                    return JsonResponse({'error': 'Text in pdf exceeds the maximum allowed word count of 2000. Please shorten the text and try again.', 'code': 400})
+            if uploaded_file:
+                extracted_text = extract_text_from_pdf(uploaded_file)
+                
+                if extracted_text:
+                    word_count = len(extracted_text.split())
+                    if word_count > 2000:
+                        return JsonResponse({'error': 'Text in pdf exceeds the maximum allowed word count of 2000. Please shorten the text and try again.', 'code': 400})
+                    else:
+                        llm = get_llm()
+                        bot_reply = llm.invoke(groq_chat_prompt.format(context=extracted_text, message=message))
+                        bot_reply_content = bot_reply.content.replace('*', ' ')
+
+                        return JsonResponse({'status': 'success', 'msg': bot_reply_content}, status=200)
                 else:
-                    llm = get_llm()
-                    bot_reply = llm.invoke(groq_chat_prompt.format(context=extracted_text, message=message))
-                    bot_reply_content = bot_reply.content.replace('*', ' ')
-
-                    return JsonResponse({'status': 'success', 'msg': bot_reply_content}, status=200)
+                    return JsonResponse({'error': 'No readable text found in this PDF.', 'code': 400})
             else:
-                return JsonResponse({'error': 'No readable text found in this PDF.', 'code': 400})
-        else:
-            return JsonResponse({'error': 'No file uploaded.', 'code': 400})
+                return JsonResponse({'error': 'No file uploaded.', 'code': 400})
+        except Exception as e:
+            return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
 
 def readpdf(request): # readpdf and summarize
     groq_summarize_prompt = ChatPromptTemplate.from_template(
@@ -191,25 +194,28 @@ def readpdf(request): # readpdf and summarize
         """
     )
     if request.method == 'POST':
-        uploaded_file = request.FILES.get('file')
+        try:
+            uploaded_file = request.FILES.get('file')
 
-        if uploaded_file:
-            extracted_text = extract_text_from_pdf(uploaded_file)
-            
-            if extracted_text:
-                word_count = len(extracted_text.split())
-                if word_count > 2000:
-                    return JsonResponse({'error': 'Text in pdf exceeds the maximum allowed word count of 2000. Please shorten the text and try again.', 'code': 400})
+            if uploaded_file:
+                extracted_text = extract_text_from_pdf(uploaded_file)
+                
+                if extracted_text:
+                    word_count = len(extracted_text.split())
+                    if word_count > 2000:
+                        return JsonResponse({'error': 'Text in pdf exceeds the maximum allowed word count of 2000. Please shorten the text and try again.', 'code': 400})
+                    else:
+                        llm = get_llm()
+                        summary = llm.invoke(groq_summarize_prompt.format(context=extracted_text))
+                        summary_content = summary.content.replace('*', ' ')
+                        
+                        return JsonResponse({'status': 'success', 'msg': summary_content}, status=200)
                 else:
-                    llm = get_llm()
-                    summary = llm.invoke(groq_summarize_prompt.format(context=extracted_text))
-                    summary_content = summary.content.replace('*', ' ')
-                    
-                    return JsonResponse({'status': 'success', 'msg': summary_content}, status=200)
+                    return JsonResponse({'error': 'No readable text found in this PDF.', 'code': 400})
             else:
-                return JsonResponse({'error': 'No readable text found in this PDF.', 'code': 400})
-        else:
-            return JsonResponse({'error': 'No file uploaded.', 'code': 400})
+                return JsonResponse({'error': 'No file uploaded.', 'code': 400})
+        except Exception as e:
+            return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
         
 def generateQA(request): # generateQA
     groq_qa_prompt = ChatPromptTemplate.from_template(
@@ -225,25 +231,28 @@ def generateQA(request): # generateQA
         """
     )
     if request.method == 'POST':
-        uploaded_file = request.FILES.get('file')
+        try:
+            uploaded_file = request.FILES.get('file')
 
-        if uploaded_file:
-            extracted_text = extract_text_from_pdf(uploaded_file)
-            
-            if extracted_text:
-                word_count = len(extracted_text.split())
-                if word_count > 2000:
-                    return JsonResponse({'error': 'Text in pdf exceeds the maximum allowed word count of 2000. Please shorten the text and try again.', 'code': 400})
+            if uploaded_file:
+                extracted_text = extract_text_from_pdf(uploaded_file)
+                
+                if extracted_text:
+                    word_count = len(extracted_text.split())
+                    if word_count > 2000:
+                        return JsonResponse({'error': 'Text in pdf exceeds the maximum allowed word count of 2000. Please shorten the text and try again.', 'code': 400})
+                    else:
+                        llm = get_llm()
+                        qa = llm.invoke(groq_qa_prompt.format(context=extracted_text))
+                        qa_content = qa.content.replace('*', ' ')
+                        
+                        return JsonResponse({'status': 'success', 'msg': qa_content}, status=200)
                 else:
-                    llm = get_llm()
-                    qa = llm.invoke(groq_qa_prompt.format(context=extracted_text))
-                    qa_content = qa.content.replace('*', ' ')
-                    
-                    return JsonResponse({'status': 'success', 'msg': qa_content}, status=200)
+                    return JsonResponse({'error': 'No readable text found in this PDF.', 'code': 400})
             else:
-                return JsonResponse({'error': 'No readable text found in this PDF.', 'code': 400})
-        else:
-            return JsonResponse({'error': 'No file uploaded.', 'code': 400})
+                return JsonResponse({'error': 'No file uploaded.', 'code': 400})
+        except Exception as e:
+            return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
 
 def generateStudyGuide(request):
     groq_study_prompt = ChatPromptTemplate.from_template(
@@ -261,22 +270,25 @@ def generateStudyGuide(request):
         """
     )
     if request.method == 'POST':
-        uploaded_file = request.FILES.get('file')
+        try:
+            uploaded_file = request.FILES.get('file')
 
-        if uploaded_file:
-            extracted_text = extract_text_from_pdf(uploaded_file)
-            
-            if extracted_text:
-                word_count = len(extracted_text.split())
-                if word_count > 2500: # Slightly higher limit for study guides
-                    return JsonResponse({'error': 'Text exceeds 2500 words. Please use a shorter document.', 'code': 400})
+            if uploaded_file:
+                extracted_text = extract_text_from_pdf(uploaded_file)
+                
+                if extracted_text:
+                    word_count = len(extracted_text.split())
+                    if word_count > 2500: # Slightly higher limit for study guides
+                        return JsonResponse({'error': 'Text exceeds 2500 words. Please use a shorter document.', 'code': 400})
+                    else:
+                        llm = get_llm()
+                        guide = llm.invoke(groq_study_prompt.format(context=extracted_text))
+                        guide_content = guide.content.replace('*', ' ')
+                        
+                        return JsonResponse({'status': 'success', 'msg': guide_content}, status=200)
                 else:
-                    llm = get_llm()
-                    guide = llm.invoke(groq_study_prompt.format(context=extracted_text))
-                    guide_content = guide.content.replace('*', ' ')
-                    
-                    return JsonResponse({'status': 'success', 'msg': guide_content}, status=200)
+                    return JsonResponse({'error': 'No readable text found in this PDF.', 'code': 400})
             else:
-                return JsonResponse({'error': 'No readable text found in this PDF.', 'code': 400})
-        else:
-            return JsonResponse({'error': 'No file uploaded.', 'code': 400})
+                return JsonResponse({'error': 'No file uploaded.', 'code': 400})
+        except Exception as e:
+            return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
