@@ -13,14 +13,14 @@ load_dotenv()
 # Create your views here.
 def login(request):
     if request.method == 'POST':
-        body = json.loads(request.body)
-        email = body.get('email')
-        password = body.get('password')
-
-        if not email or not password:
-            return JsonResponse({'error': 'Please fill in all fields.', 'code': 400})
-        
         try:
+            body = json.loads(request.body)
+            email = body.get('email')
+            password = body.get('password')
+
+            if not email or not password:
+                return JsonResponse({'error': 'Please fill in all fields.', 'code': 400})
+            
             user = Member.objects.get(email=email, password=password)
 
             # Delete any existing session for the user
@@ -52,33 +52,33 @@ def login(request):
             return JsonResponse({'error': "Invalid email or password", 'code': 400})
         
         except Exception as e:
-            return JsonResponse({'error': 'An unexpected error occurred.'}, status=500)
+            return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
 
     return render(request, 'pages/login.html')
 
 def signup(request):
     if request.method == 'POST':
-        body = json.loads(request.body)
-
-        first_name = body.get('first_name')
-        last_name = body.get('last_name')
-        gender = body.get('gender')
-        username = body.get('username')
-        email = body.get('email')
-        password = body.get('password')
-        confirm_password = body.get('confirm_password')
-        phone_number = body.get('phone_number')
-
-        if password != confirm_password:
-            return JsonResponse({'error': 'Passwords do not match.', 'code': 400})
-        
-        if not first_name or not last_name or not gender or not username or not email or not password or not phone_number:
-            return JsonResponse({'error': 'Please fill in all fields.', 'code': 400})
-        
-        if Member.objects.filter(email=email).exists() or Member.objects.filter(username=username).exists():
-            return JsonResponse({'error': 'Email or username already exists.', 'code': 400})
-        
         try:
+            body = json.loads(request.body)
+
+            first_name = body.get('first_name')
+            last_name = body.get('last_name')
+            gender = body.get('gender')
+            username = body.get('username')
+            email = body.get('email')
+            password = body.get('password')
+            confirm_password = body.get('confirm_password')
+            phone_number = body.get('phone_number')
+
+            if password != confirm_password:
+                return JsonResponse({'error': 'Passwords do not match.', 'code': 400})
+            
+            if not first_name or not last_name or not gender or not username or not email or not password or not phone_number:
+                return JsonResponse({'error': 'Please fill in all fields.', 'code': 400})
+            
+            if Member.objects.filter(email=email).exists() or Member.objects.filter(username=username).exists():
+                return JsonResponse({'error': 'Email or username already exists.', 'code': 400})
+            
             member = Member.objects.create(
                 first_name=first_name,
                 last_name=last_name,
@@ -92,7 +92,7 @@ def signup(request):
             return JsonResponse({'status': 'success' ,'msg': 'Signup successful'}, status=200)
 
         except Exception as e:
-            return JsonResponse({'error': 'An unexpected error occurred.'}, status=500)
+            return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
         
     return render(request, 'pages/signup.html')
         

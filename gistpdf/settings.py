@@ -92,7 +92,14 @@ if not DATABASES['default']:
     # Fallback for local development or Vercel (using /tmp/ for read-write access)
     db_path = BASE_DIR / 'db.sqlite3'
     if os.environ.get('VERCEL'):
-        db_path = Path('/tmp/db.sqlite3')
+        import shutil
+        tmp_db_path = Path('/tmp/db.sqlite3')
+        if not tmp_db_path.exists() and db_path.exists():
+            try:
+                shutil.copy2(db_path, tmp_db_path)
+            except Exception:
+                pass
+        db_path = tmp_db_path
         
     DATABASES['default'] = {
         'ENGINE': 'django.db.backends.sqlite3',
