@@ -145,7 +145,7 @@ def get_llm():
     groq_api_key = os.environ.get('GROQ_API_KEY')
     if not groq_api_key:
         raise ValueError("GROQ_API_KEY environment variable is not set.")
-    return ChatGroq(groq_api_key=groq_api_key, model_name="Gemma2-9b-It")
+    return ChatGroq(groq_api_key=groq_api_key, model_name="llama-3.1-8b-instant")
 
 def chat(request):
     groq_chat_prompt = ChatPromptTemplate.from_template(
